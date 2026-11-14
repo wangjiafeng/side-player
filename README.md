@@ -8,6 +8,8 @@ side-player 适合优雅安静的呆在纯色的桌面上。
 
 side-player 支持 macOS 14 或更高版本，发布包为 Universal，可用于 Apple Silicon 与 Intel Mac。当前发布包尚未使用 Developer ID 签名或公证。首次打开时，如果 macOS 阻止启动，请在“系统设置 → 隐私与安全性”中确认是否允许打开。
 
+side-player 采用 GPL-3.0-only 许可证，详见 [LICENSE](LICENSE)。
+
 ![side-player 桌面侧栏](<side-player.png>)
 
 ## 2、设置
