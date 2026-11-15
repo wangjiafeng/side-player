@@ -1,4 +1,6 @@
 import AppKit
+import Combine
+import MediaPlayer
 import SwiftUI
 
 @main
@@ -38,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private var defaultsObserver: NSObjectProtocol?
+    private var nowPlayingObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -50,12 +53,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         makeSidebar()
         PlayerModel.shared.refreshSelectedSources()
         makeStatusItem()
+        configureMediaKeys()
         defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.updateSidebarGeometry() }
         }
         if UserDefaults.standard.object(forKey: "startupSettings") == nil || UserDefaults.standard.bool(forKey: "startupSettings") {
             showSettings()
         }
+    }
+
+    private func configureMediaKeys() {
+        let model = PlayerModel.shared
+        let commands = MPRemoteCommandCenter.shared()
+
+        commands.previousTrackCommand.addTarget { _ in
+            Task { @MainActor in model.previous() }
+            return .success
+        }
+        commands.togglePlayPauseCommand.addTarget { _ in
+            Task { @MainActor in model.playPause() }
+            return .success
+        }
+        commands.playCommand.addTarget { _ in
+            Task { @MainActor in if !model.isPlaying { model.playPause() } }
+            return .success
+        }
+        commands.pauseCommand.addTarget { _ in
+            Task { @MainActor in if model.isPlaying { model.playPause() } }
+            return .success
+        }
+        commands.nextTrackCommand.addTarget { _ in
+            Task { @MainActor in model.next() }
+            return .success
+        }
+
+        nowPlayingObserver = model.$tracks
+            .combineLatest(model.$currentIndex, model.$isPlaying)
+            .sink { [weak self] tracks, index, isPlaying in
+                Task { @MainActor in
+                    self?.updateNowPlaying(tracks: tracks, index: index, isPlaying: isPlaying)
+                }
+            }
+    }
+
+    private func updateNowPlaying(tracks: [Track], index: Int, isPlaying: Bool) {
+        let center = MPNowPlayingInfoCenter.default()
+        guard tracks.indices.contains(index) else {
+            center.nowPlayingInfo = nil
+            center.playbackState = .stopped
+            return
+        }
+        let track = tracks[index]
+        center.nowPlayingInfo = [
+            MPMediaItemPropertyTitle: track.title,
+            MPMediaItemPropertyArtist: track.artist,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0
+        ]
+        center.playbackState = isPlaying ? .playing : .paused
     }
 
     private func makeSidebar() {
@@ -105,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSettings() {
         if let settingsWindow { settingsWindow.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 620), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "设置"
         window.isReleasedWhenClosed = false
         window.center()
@@ -135,7 +189,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let height = min(760, screen.height - 80)
         let offset = CGFloat(UserDefaults.standard.double(forKey: "sidebarVerticalOffsetMM") * 72 / 25.4)
         let x = UserDefaults.standard.string(forKey: "sidebarSide") == "右侧" ? screen.maxX - panel.frame.width : screen.minX
-        let y = min(max(screen.midY - height / 2 + offset, screen.minY), max(screen.minY, screen.maxY - height))
+        let screenCenterY = NSScreen.main?.frame.midY ?? screen.midY
+        let y = min(max(screenCenterY - height / 2 + offset, screen.minY), max(screen.minY, screen.maxY - height))
         panel.setFrame(NSRect(x: x, y: y, width: panel.frame.width, height: height), display: true)
         panel.alphaValue = max(0.1, min(1, UserDefaults.standard.double(forKey: "sidebarOpacity") == 0 ? 1 : UserDefaults.standard.double(forKey: "sidebarOpacity") / 100))
     }

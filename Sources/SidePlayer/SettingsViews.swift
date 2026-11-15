@@ -12,22 +12,22 @@ struct SettingsRootView: View {
     @State private var section: SettingsSection = .general
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("side-player").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(Color(hex: "2a3f52"))
-                    .padding(.horizontal, 14).padding(.top, 30).padding(.bottom, 6)
+                    .padding(.horizontal, 14).padding(.top, 18)
                 ForEach(SettingsSection.allCases, id: \.self) { item in
                     Button { section = item } label: {
                         Label(item.rawValue, systemImage: item.symbol)
                             .font(.system(size: 14, weight: .semibold))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 14).padding(.vertical, 11)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(section == item ? Color(hex: "c9c9ad") : .clear, in: RoundedRectangle(cornerRadius: 10))
                             .foregroundStyle(Color(hex: "2a3f52"))
                     }.buttonStyle(.plain).padding(.horizontal, 8)
                 }
                 Spacer()
             }
-            .frame(width: 205)
+            .frame(width: 190)
             .background(Color(hex: "f3f4f8"))
             Group {
                 switch section {
@@ -37,11 +37,11 @@ struct SettingsRootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(20)
+            .padding(14)
             .background(Color(hex: "f3f4f8"))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "d6dfeb"), lineWidth: 1).padding(8))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "d6dfeb"), lineWidth: 1).padding(5))
         }
-        .frame(minWidth: 850, minHeight: 650)
+        .frame(minWidth: 760, minHeight: 620)
     }
 }
 
@@ -106,7 +106,7 @@ private struct GeneralSettingsView: View {
                 }.padding(.horizontal, 4).padding(.vertical, 12)
             }
         }
-        .padding(.horizontal, 22).padding(.top, 20)
+        .padding(.horizontal, 16).padding(.top, 12)
         .onAppear {
             model.sortRandom = UserDefaults.standard.bool(forKey: "randomSort")
             model.setSources(local: sourceLocal, netEase: sourceNetEase)
@@ -138,7 +138,7 @@ private struct GeneralSettingsView: View {
             Text(model.musicFolder.isEmpty ? "尚未选择文件夹" : FileManager.default.displayName(atPath: model.musicFolder))
                 .foregroundStyle(.secondary).lineLimit(1).frame(width: 180, alignment: .leading)
             Button("选择文件夹") { model.chooseFolder() }.buttonStyle(AccentButtonStyle())
-        }.padding(.vertical, 12).overlay(alignment: .bottom) { Divider() }
+        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider() }
     }
 
     private var sourcePicker: some View {
@@ -148,7 +148,7 @@ private struct GeneralSettingsView: View {
                 Toggle("本地文件夹", isOn: $sourceLocal)
                 Toggle("网易云音乐列表", isOn: $sourceNetEase)
             }
-        }.padding(.vertical, 12).overlay(alignment: .bottom) { Divider() }
+        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider() }
     }
 
     private var netEaseRow: some View {
@@ -174,14 +174,14 @@ private struct GeneralSettingsView: View {
                     }))
                 }
             }
-        }.padding(.vertical, 12).overlay(alignment: .bottom) { Divider() }
+        }.padding(.vertical, 8).overlay(alignment: .bottom) { Divider() }
     }
 
     private func valueRow<T: View>(_ title: String, subtitle: String?, @ViewBuilder control: () -> T) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 14, weight: .semibold)); if let subtitle { Text(subtitle).font(.system(size: 12)).foregroundStyle(.secondary) } }
             Spacer(minLength: 16); control()
-        }.padding(.vertical, 11).overlay(alignment: .bottom) { Divider() }
+        }.padding(.vertical, 7).overlay(alignment: .bottom) { Divider() }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
@@ -298,8 +298,6 @@ private struct NetEaseLoginPage: NSViewRepresentable {
 private struct InterfaceSettingsView: View {
     @AppStorage("showArtist") private var showArtist = true
     @AppStorage("showTitle") private var showTitle = true
-    @AppStorage("showYear") private var showYear = false
-    @AppStorage("showExtension") private var showExtension = false
     @AppStorage("defaultFontSize") private var defaultSize = 9.0
     @AppStorage("hoverFontSize") private var hoverSize = 12.0
     @AppStorage("color.文字（默认）") private var previewTextHex = "556775"
@@ -317,62 +315,68 @@ private struct InterfaceSettingsView: View {
         ("播放时按钮底色", "556775"), ("播放时按钮图标与边框", "556775"), ("暂停时按钮底色", "252d3a"), ("暂停时按钮图标与边框", "556775")
     ]
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 15) {
-                HStack(alignment: .top, spacing: 24) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5.8) {
+                    Text("配色设置").font(.system(size: 16, weight: .bold))
+                    Text("输入十六进制颜色值（#RRGGBB），实时预览侧栏效果").font(.system(size: 12)).foregroundStyle(.secondary)
+                    ForEach(colors, id: \.0) { name, hex in ColorField(name: name, initial: hex) }
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("侧栏预览").font(.system(size: 14, weight: .semibold))
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("配色设置").font(.system(size: 16, weight: .bold))
-                        Text("输入十六进制颜色值（#RRGGBB），实时预览侧栏效果").font(.system(size: 12)).foregroundStyle(.secondary)
-                        ForEach(colors, id: \.0) { name, hex in ColorField(name: name, initial: hex) }
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("侧栏预览").font(.system(size: 14, weight: .semibold))
-                        VStack(alignment: .leading, spacing: 11) {
+                        VStack(alignment: .leading, spacing: 0) {
                             previewLine("演唱者丨歌曲名", selected: true)
                             previewLine("演唱者丨歌曲名", adjacent: true)
                             previewLine("演唱者丨歌曲名")
-                            HStack { SegmentedProgress(value: 0.45, playedHex: previewPlayedHex, unplayedHex: previewUnplayedHex); Text("01:28 / 04:12").font(.system(size: 10)).foregroundStyle(Color(hex: previewTextHex)) }
-                            Text("示例歌词").font(.system(size: 9)).foregroundStyle(Color(hex: previewLyricHex))
-                            HStack(spacing: 8) {
-                                SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 0, y: 16, width: 73, height: 40)).frame(width: 18, height: SegmentedProgress.height)
-                                SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 105, y: 114, width: 72, height: 72)).frame(width: 18, height: SegmentedProgress.height)
-                                SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 208, y: 16, width: 73, height: 40)).frame(width: 18, height: SegmentedProgress.height)
-                            }
-                        }.padding(14).frame(width: 220).background(Color(hex: "f3f4f8"), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "d6dfeb")))
+                            previewLine("演唱者丨歌曲名")
+                            previewLine("演唱者丨歌曲名", showsShortLine: false)
+                        }
+                        HStack { SegmentedProgress(value: 0.45, playedHex: previewPlayedHex, unplayedHex: previewUnplayedHex); Text("01:28 / 04:12").font(.system(size: 10)).foregroundStyle(Color(hex: previewTextHex)) }
+                        Text("示例歌词").font(.system(size: 9)).foregroundStyle(Color(hex: previewLyricHex))
+                        HStack(spacing: 8) {
+                            SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 0, y: 16, width: 73, height: 40)).frame(width: 18, height: SegmentedProgress.height)
+                            SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 105, y: 114, width: 72, height: 72)).frame(width: 18, height: SegmentedProgress.height)
+                            SVGSpriteCrop(image: previewSprite, sourceRect: NSRect(x: 208, y: 16, width: 73, height: 40)).frame(width: 18, height: SegmentedProgress.height)
+                        }
+                    }.padding(10).frame(width: 240).background(Color(hex: "f3f4f8"), in: RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(hex: "d6dfeb")))
                     }.padding(.top, 35)
-                }
-                Divider().padding(.vertical, 4)
-                Text("显示设置").font(.system(size: 16, weight: .bold))
-                HStack(spacing: 10) {
-                    Text("侧栏显示名称")
-                    Toggle("第一位歌手名", isOn: $showArtist).toggleStyle(.checkbox)
-                    Toggle("歌曲名", isOn: $showTitle).toggleStyle(.checkbox)
-                    Toggle("发行年", isOn: $showYear).toggleStyle(.checkbox)
-                    Toggle("后缀名", isOn: $showExtension).toggleStyle(.checkbox)
-                }
-                HStack(spacing: 10) {
-                    Text("默认字号")
-                    TextField("9", value: $defaultSize, format: .number).multilineTextAlignment(.center).frame(width: 68)
-                    Text("pt").padding(.trailing, 14)
-                    Text("悬停最大字号")
-                    TextField("12", value: $hoverSize, format: .number).multilineTextAlignment(.center).frame(width: 68)
-                    Text("pt")
-                }
-                HStack { Button("恢复默认") { showArtist = true; showTitle = true; showYear = false; showExtension = false; defaultSize = 9; hoverSize = 12 }.buttonStyle(OutlineButtonStyle()); Button("确认修改") {}.buttonStyle(AccentButtonStyle()) }
-                Spacer(minLength: 10)
-            }.padding(18)
+            }
+            Divider().padding(.vertical, 1)
+            Text("显示设置").font(.system(size: 16, weight: .bold))
+            HStack(spacing: 8) {
+                Text("侧栏显示名称")
+                Toggle("第一位歌手名", isOn: $showArtist).toggleStyle(.checkbox)
+                Toggle("歌曲名", isOn: $showTitle).toggleStyle(.checkbox)
+            }
+            HStack(spacing: 8) {
+                Text("默认字号")
+                TextField("9", value: $defaultSize, format: .number).multilineTextAlignment(.center).frame(width: 58)
+                Text("pt").padding(.trailing, 8)
+                Text("悬停最大字号")
+                TextField("12", value: $hoverSize, format: .number).multilineTextAlignment(.center).frame(width: 58)
+                Text("pt")
+            }
+            HStack { Button("恢复默认") { showArtist = true; showTitle = true; defaultSize = 9; hoverSize = 12 }.buttonStyle(OutlineButtonStyle()); Button("确认修改") {}.buttonStyle(AccentButtonStyle()) }
+            Spacer(minLength: 4)
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
-    private func previewLine(_ title: String, selected: Bool = false, adjacent: Bool = false) -> some View {
+    private func previewLine(_ title: String, selected: Bool = false, adjacent: Bool = false, showsShortLine: Bool = true) -> some View {
         HStack(spacing: 8) {
-            VStack(spacing: 5) {
-                Rectangle().fill(Color(hex: previewLongLineHex)).frame(width: 38, height: 1)
-                Rectangle().fill(Color(hex: previewShortLineHex)).frame(width: 20, height: 1).frame(maxWidth: .infinity, alignment: .leading)
-            }.frame(width: 38)
+            ZStack(alignment: .topLeading) {
+                Rectangle().fill(Color(hex: previewLongLineHex)).frame(width: 38, height: 1).offset(y: 10)
+                if showsShortLine {
+                    Rectangle().fill(Color(hex: previewShortLineHex)).frame(width: 20, height: 1).offset(y: 26.5)
+                }
+            }
+            .frame(width: 38, height: 33, alignment: .topLeading)
             Text(title).font(.system(size: 10, weight: .medium))
                 .foregroundStyle(Color(hex: selected ? previewHoverHex : (adjacent ? previewAdjacentHex : previewTextHex)))
                 .lineLimit(1)
-        }
+                .frame(height: 33, alignment: .center)
+        }.frame(height: 33)
     }
     private var previewSprite: NSImage {
         let url = Bundle.module.url(forResource: "slide-player", withExtension: "svg", subdirectory: "Resources")!
@@ -392,8 +396,8 @@ private struct ColorField: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(name).font(.system(size: 12)).frame(width: 140, alignment: .leading)
-            RoundedRectangle(cornerRadius: 5).fill(Color(hex: value)).frame(width: 26, height: 22).overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(hex: "d6dfeb")))
-            TextField("#RRGGBB", text: $value).font(.system(size: 12, weight: .semibold, design: .monospaced)).textFieldStyle(.roundedBorder).frame(width: 90)
+            RoundedRectangle(cornerRadius: 5).fill(Color(hex: value)).frame(width: 24, height: 20).overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(hex: "d6dfeb")))
+            TextField("#RRGGBB", text: $value).font(.system(size: 12, weight: .semibold, design: .monospaced)).textFieldStyle(.roundedBorder).frame(width: 88, height: 23)
         }
     }
 }
@@ -406,8 +410,8 @@ private struct AboutView: View {
                 Image(nsImage: image).resizable().scaledToFit().frame(width: 92, height: 92).clipShape(RoundedRectangle(cornerRadius: 18))
             }
             Text("side-player").font(.system(size: 22, weight: .bold, design: .rounded))
-            Text("融入侧栏的本地与网易云音乐混合播放器").font(.system(size: 14)).foregroundStyle(Color(hex: "556775"))
-            Text("版本 1.0.0").font(.system(size: 12)).foregroundStyle(.secondary)
+            Text("融入MAC桌面边缘的本地与网易云音乐混合播放器").font(.system(size: 14)).foregroundStyle(Color(hex: "556775"))
+            Text("v1.0.1").font(.system(size: 12)).foregroundStyle(.secondary)
             Text("© 北京正笔正心文化发展有限公司").font(.system(size: 13))
             Link("https://www.zhengxinshushe.com/", destination: URL(string: "https://www.zhengxinshushe.com/")!)
                 .font(.system(size: 12)).foregroundStyle(Color(hex: "0756c6"))
@@ -419,7 +423,7 @@ private struct AboutView: View {
 private struct ToggleRow: View {
     let title: String; let subtitle: String; @Binding var isOn: Bool
     var body: some View {
-        HStack { VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 14, weight: .semibold)); Text(subtitle).font(.system(size: 12)).foregroundStyle(.secondary) }; Spacer(); Toggle(title, isOn: $isOn).labelsHidden().tint(Color(hex: "ceba7b")) }.padding(.vertical, 11).overlay(alignment: .bottom) { Divider() }
+        HStack { VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 14, weight: .semibold)); Text(subtitle).font(.system(size: 12)).foregroundStyle(.secondary) }; Spacer(); Toggle(title, isOn: $isOn).labelsHidden().tint(Color(hex: "ceba7b")) }.padding(.vertical, 7).overlay(alignment: .bottom) { Divider() }
     }
 }
 

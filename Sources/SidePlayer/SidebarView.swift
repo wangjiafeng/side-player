@@ -13,8 +13,6 @@ struct SidebarView: View {
     @EnvironmentObject private var model: PlayerModel
     @AppStorage("showArtist") private var showArtist = true
     @AppStorage("showTitle") private var showTitle = true
-    @AppStorage("showYear") private var showYear = false
-    @AppStorage("showExtension") private var showExtension = false
     @AppStorage("defaultFontSize") private var defaultFontSize = 9.0
     @AppStorage("hoverFontSize") private var hoverFontSize = 12.0
     @AppStorage("sidebarSongCount") private var sidebarSongCount = 8
@@ -43,7 +41,7 @@ struct SidebarView: View {
     var body: some View {
         VStack(alignment: onRight ? .trailing : .leading, spacing: 27) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 11) {
+                VStack(alignment: onRight ? .trailing : .leading, spacing: 11) {
                     let nearestIndex = model.tracks.firstIndex { $0.id == nearestID }
                     ForEach(Array(model.tracks.enumerated()), id: \.element.id) { index, track in
                         let emphasis = effects[track.id, default: 0]
@@ -118,8 +116,8 @@ struct SidebarView: View {
                 case .ended: pointerY = nil
                 }
             }
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: onRight ? .trailing : .leading, spacing: 12) {
+                VStack(alignment: onRight ? .trailing : .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         SegmentedProgress(value: model.duration > 0 ? model.currentTime / model.duration : 0, playedHex: playedHex, unplayedHex: unplayedHex) { fraction in
                             model.seek(to: model.duration * fraction)
@@ -129,13 +127,14 @@ struct SidebarView: View {
                             .foregroundStyle(Color(hex: defaultTextHex))
                             .fixedSize()
                     }
-                    .overlay(alignment: .bottomLeading) {
+                    .overlay(alignment: onRight ? .bottomTrailing : .bottomLeading) {
                         GeometryReader { geometry in
                             Text(model.currentLyric)
                                 .font(.system(size: defaultFontSize, weight: .medium))
                                 .foregroundStyle(Color(hex: lyricHex))
                                 .lineLimit(1)
-                                .frame(width: geometry.size.width, alignment: .leading)
+                                .multilineTextAlignment(onRight ? .trailing : .leading)
+                                .frame(width: geometry.size.width, alignment: onRight ? .trailing : .leading)
                                 .offset(y: geometry.size.height + 4)
                         }
                         .allowsHitTesting(false)
@@ -148,11 +147,13 @@ struct SidebarView: View {
                     spriteButton(sourceRect: NSRect(x: 208, y: 16, width: 73, height: 40)) { model.next() }
                 }
                 .frame(height: SegmentedProgress.height, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: onRight ? .trailing : .leading)
             }
         }
         .padding(.leading, onRight ? 18 : 12)
         .padding(.trailing, onRight ? 12 : 18)
         .padding(.vertical, 28)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .frame(width: 300)
         .background(Color.clear)
         .alert("无法播放", isPresented: Binding(get: { model.playbackError != nil }, set: { if !$0 { model.playbackError = nil } })) {
@@ -180,11 +181,25 @@ struct SidebarView: View {
 
     private func displayName(for track: Track) -> String {
         var parts: [String] = []
-        if showArtist { parts.append(track.artist) }
-        if showTitle { parts.append(track.title) }
-        if showYear, let year = track.year { parts.append(year) }
-        if showExtension, let fileExtension = track.url?.pathExtension { parts.append(fileExtension) }
-        return parts.isEmpty ? track.title : parts.joined(separator: "丨")
+        if showArtist { parts.append(cleanDisplayComponent(track.artist, year: nil)) }
+        if showTitle { parts.append(cleanDisplayComponent(track.title, year: track.year)) }
+        return parts.isEmpty ? cleanDisplayComponent(track.title, year: track.year) : parts.joined(separator: "丨")
+    }
+
+    private func cleanDisplayComponent(_ component: String, year: String?) -> String {
+        var value = component.trimmingCharacters(in: .whitespacesAndNewlines)
+        value = value.replacingOccurrences(
+            of: #"\.(?:mp3|m4a|aac|alac|wav|aiff|aif|flac|ape|wv|ogg|opus|ncm)$"#,
+            with: "",
+            options: .caseInsensitive
+        )
+        let yearPattern = year.map { NSRegularExpression.escapedPattern(for: $0) } ?? #"(?:19|20)\d{2}"#
+        value = value.replacingOccurrences(
+            of: #"\s*[-–—_.]?[\(\[（]?"# + yearPattern + #"[\)\]）]?\s*$"#,
+            with: "",
+            options: .regularExpression
+        )
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func spriteButton(sourceRect: NSRect, action: @escaping () -> Void) -> some View {
